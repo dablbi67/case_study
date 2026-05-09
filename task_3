@@ -18,7 +18,7 @@ left join dash_case_study.wise_case_study.holidays_2023 h
     on t.posting_date = h.holiday_date
 where (dayofweek(posting_date) not in (0, 6) -- excluding weekends
     and h.holiday_date is null) -- excluding bank holidays
-    and quarter(posting_date) IN (2, 3, 4) 
+    and quarter(posting_date) IN (2, 3) 
 )
 
 Select
