@@ -1,0 +1,30 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Task 3: Estimate the total transfer volume for October 2023 (bonus, include a measures of range & certainty).
+-- The 9 dates available in the dataset for October are all weekend dates. Therefore only weekday transfer volume is estimated
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------
+-- Estimated weekday transfer volume
+--------------------------------------------
+
+with base as (
+Select
+  round(avg(volume_gbp), 0) as mean_business_day,
+  round(stddev(volume_gbp), 0) as std_dev_business_day,
+  round(avg(volume_gbp) - 1.96 * stddev(volume_gbp), 0) as low_estimate,
+  round(avg(volume_gbp) + 1.96 * stddev(volume_gbp), 0) as high_estimate
+from dash_case_study.wise_case_study.take_home_task_dataset t
+left join dash_case_study.wise_case_study.holidays_2023 h
+    on t.posting_date = h.holiday_date
+where (dayofweek(posting_date) not in (0, 6) -- excluding weekends
+    and h.holiday_date is null) -- excluding bank holidays
+    and quarter(posting_date) IN (2, 3, 4) 
+)
+
+Select
+  22 as assumed_business_days, -- October has only 9 dates (weekends), October has 31 days  
+  round(22 * mean_business_day, 0) as point_estimate,
+  round(22 * (mean_business_day - 1.96 * std_dev_business_day / SQRT(22)), 0) as ci_lower_95,
+  round(22 * (mean_business_day + 1.96 * std_dev_business_day / SQRT(22)), 0) as ci_upper_95
+from base
+;
