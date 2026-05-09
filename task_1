@@ -1,0 +1,158 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Task 1: Identify daily transaction distribution. 
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------
+-- Exploratory analysis 
+----------------------------------------------------
+with main as (
+    select 
+    posting_date,
+    date_trunc(month, posting_date) as posting_month,
+    date_trunc(quarter, posting_date) as posting_quarter,
+    dayname(posting_date) as day_of_week,
+    round(volume_gbp,3) as volume_gbp,
+from dash_case_study.wise_case_study.take_home_task_dataset
+)
+
+, total as (
+select 
+    sum(volume_gbp) total_volume
+from main
+)
+
+---------------------------
+-- Month 
+---------------------------
+-- October has only 9 days in the dataset. Weekday dates are missing.
+
+--Select 
+--    m.posting_month,
+--    count(*) as n_days,
+--    sum(m.volume_gbp) sum_volume,
+--    round(avg(volume_gbp), 2)as avg_volume,
+--    round(median(volume_gbp), 2) as median_volume,
+--    round(min(volume_gbp), 2) as min_volume,
+--    round(max(volume_gbp), 2) as max_volume,
+--    round((sum(m.volume_gbp)/t.total_volume)*100,2) as volume_share,
+--    sum(case when volume_gbp=0 then 1 else 0 end) as no_days_with_zero
+--from main m
+--left join total t
+--group by m.posting_month, t.total_volume
+--order by m.posting_month
+--;
+
+---------------------------
+-- Quarter 
+---------------------------
+--Select 
+--    posting_quarter,
+--    count(*) as n_days,
+--    sum(m.volume_gbp) sum_volume,
+--    round(avg(volume_gbp), 2)as avg_volume,
+--    round(median(volume_gbp), 2) as median_volume,
+--    round(min(volume_gbp), 2) as min_volume,
+--    round(max(volume_gbp), 2) as max_volume,
+--  sum(case when volume_gbp=0 then 1 else 0 end) as no_days_with_zero
+--from main m
+--left join total t
+--group by m.posting_quarter, t.total_volume
+--;
+
+---------------------------
+-- Weekdays 
+---------------------------
+ -- Two modes: Saturday/Sunday cluster tightly near zero and Mon–Fri cluster in the hundreds of thousands - bimodular distribution
+
+--Select 
+--    day_of_week,
+--    count(*) as n_days,
+--    sum(m.volume_gbp) sum_volume,
+--    round(avg(volume_gbp), 2)as avg_volume,
+--    round(median(volume_gbp), 2) as median_volume,
+--    round(min(volume_gbp), 2) as min_volume,
+--    round(max(volume_gbp), 2) as max_volume,
+--    round((sum(m.volume_gbp)/t.total_volume)*100,2) as volume_share,
+--    sum(case when volume_gbp=0 then 1 else 0 end) as no_days_with_zero
+--from main m
+--left join total t
+--group by m.day_of_week, t.total_volume
+--order by decode(m.day_of_week, 'Mon',1,'Tue',2,'Wed',3,'Thu',4,'Fri',5,'Sat',6,'Sun',7)
+--;
+
+---------------------------
+-- Null values 
+---------------------------
+-- A total of 10 days returned zero values: the majority were weekends, and two Fridays were public holidays.
+
+select 
+    posting_date,
+    date_trunc(month, posting_date) as posting_month,
+    date_trunc(quarter, posting_date) as posting_quarter,
+    dayname(posting_date) as day_of_week,
+    round(volume_gbp,3) as volume_gbp,
+    sum(case when volume_gbp=0 then 1 else 0 end) as no_days_with_zero
+from dash_case_study.wise_case_study.take_home_task_dataset
+group by 1, volume_gbp
+having no_days_with_zero!=0 
+;
+
+---------------------------
+-- Create a holiday reference table to seperate the two population (weekday, weekend) of the dataset 
+---------------------------
+
+create or replace transient table dash_case_study.wise_case_study.holidays_2023 (
+    holiday_date date,
+    holiday_name string,
+    country string
+);
+
+-- Insert UK holidays
+insert into dash_case_study.wise_case_study.holidays_2023 values
+('2023-01-01', 'New Year''s Day', 'UK'),
+('2023-04-07', 'Good Friday', 'UK'),
+('2023-04-10', 'Easter Monday', 'UK'),
+('2023-05-01', 'Early May Bank Holiday', 'UK'),
+('2023-05-29', 'Spring Bank Holiday', 'UK'),
+('2023-08-28', 'Summer Bank Holiday', 'UK'),
+('2023-12-25', 'Christmas Day', 'UK'),
+('2023-12-26', 'Boxing Day', 'UK');
+
+-- Insert South Africa holidays
+insert into dash_case_study.wise_case_study.holidays_2023 values
+('2023-01-01', 'New Year''s Day', 'South Africa'),
+('2023-03-21', 'Human Rights Day', 'South Africa'),
+('2023-04-07', 'Good Friday', 'South Africa'),
+('2023-04-10', 'Family Day', 'South Africa'),
+('2023-04-27', 'Freedom Day', 'South Africa'),
+('2023-05-01', 'Workers'' Day', 'South Africa'),
+('2023-06-16', 'Youth Day', 'South Africa'),
+('2023-08-09', 'National Women''s Day', 'South Africa'),
+('2023-09-24', 'Heritage Day', 'South Africa'),
+('2023-12-16', 'Day of Reconciliation', 'South Africa'),
+('2023-12-25', 'Christmas Day', 'South Africa'),
+('2023-12-26', 'Day of Goodwill', 'South Africa');
+
+
+---------------------------
+-- Classify and compare the two population 
+-- P25/P75 test and mean-median gap test to confirm bimodal distribution for the whole dataset and for the populations
+---------------------------
+
+Select
+    case when DAYOFWEEK(t.posting_date) IN (0, 6) or h.holiday_date is not null THEN 'Weekend/bank holiday'
+         when volume_gbp < 10000 THEN 'Anomaly' -- weekdays with atypical transfer volumes (arbitrary)
+    else 'Business day'
+    end as population,
+    count(*) as n,
+    round(avg(volume_gbp), 0) as mean,
+    round(median(volume_gbp), 0) as median, 
+    round(stddev(volume_gbp), 0) as std_dev,
+    percentile_cont(0.25) within group (order by volume_gbp) as p25,
+    percentile_cont(0.50) within group (order by volume_gbp) as p50,
+    percentile_cont(0.75) within group (order by volume_gbp) as p75,
+from  dash_case_study.wise_case_study.take_home_task_dataset t
+left join dash_case_study.wise_case_study.holidays_2023 h 
+    on t.posting_date = h.holiday_date
+group by 1
+;
