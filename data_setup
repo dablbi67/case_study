@@ -1,0 +1,58 @@
+-----------------------------------------------------------------------------------------------------------------------------
+-- Data setup: creating the database and schema, and loading data into the table specifically created for this case study.
+-----------------------------------------------------------------------------------------------------------------------------
+
+use role accountadmin;
+
+create or replace role snowflake_case_study;
+grant create warehouse on account to role snowflake_case_study;
+grant create database on account to role snowflake_case_study;
+grant ownership on database dash_case_study to role snowflake_case_study;
+grant ownership on schema dash_case_study.wise_case_study to role snowflake_case_study;
+
+-- Assign role
+set current_user = (select current_user());   
+grant role snowflake_case_study to user identifier($current_user);
+alter user set default_role = snowflake_case_study;
+alter user set default_warehouse = dash_wh_si;
+
+-- Switch role
+use role snowflake_case_study;
+
+-- Create object
+create or replace database dash_case_study;
+create or replace schema wise_case_study;
+create or replace warehouse dash_case_study with warehouse_size='small';
+
+create or replace stage my_internal_stage;
+
+
+create or replace file format my_csv_format  
+  type = 'csv'  
+  skip_header = 1  
+  field_optionally_enclosed_by = '"';
+
+-- Set context
+use database dash_case_study;
+use schema wise_case_study;
+use warehouse dash_wh_si;
+
+-- Grant schema-level privileges
+grant usage on database dash_case_study to role snowflake_case_study;
+grant usage on schema dash_case_study.wise_case_study to role snowflake_case_study;
+grant create table on schema dash_case_study.wise_case_study to role snowflake_case_study;
+
+grant create stage on schema dash_case_study.wise_case_study to role snowflake_case_study;
+grant create file format on schema dash_case_study.wise_case_study to role snowflake_case_study;
+
+
+create or replace table take_home_task_dataset (
+  posting_date date,
+  volume_gbp float
+);
+
+copy into take_home_task_dataset
+from @my_internal_stage
+file_format = (format_name = my_csv_format);
+
+-- As a last step, the dataset was uploaded in the newly created take_home_task_dataset table
