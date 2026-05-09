@@ -1,0 +1,61 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Task 2: Have transfer volumes along this route changed significantly from quarter to quarter in 2023?. 
+-- How would you determine that the observed differences from quarter to quarter are 'real' as opposed to being the result of background fluctuations?
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------
+-- Quarter overview for Business days only
+--------------------------------------------
+with quater_stats as(
+select
+  quarter(posting_date) as quarter,
+  count(*) as business_days,
+  round(sum(volume_gbp), 0) as total_volume,
+  round(avg(volume_gbp), 0) as mean_volume,
+  round(median(volume_gbp), 0) as median_volume,
+  round(stddev(volume_gbp), 0) as std_dev
+from  dash_case_study.wise_case_study.take_home_task_dataset t
+left join dash_case_study.wise_case_study.holidays_2023 h 
+    on t.posting_date = h.holiday_date
+where DAYOFWEEK(posting_date) not in (0, 6) -- excluding weekends
+    or h.holiday_date is null -- excluding bank holidays
+group by 1
+order by 1
+)
+
+Select
+  *,
+  round(mean_volume - 1.96 * (std_dev / SQRT(business_days)), 0) as ci_lower_95,
+  round(mean_volume + 1.96 * (std_dev / SQRT(business_days)), 0) as ci_upper_95
+from quater_stats
+order by 1
+;
+
+
+-----------------------------------------------
+-- Quarter overview for weekends/holidays only
+-----------------------------------------------
+with quater_stats as(
+select
+  quarter(posting_date)  AS quarter,
+  count(*) as business_days,
+  round(sum(volume_gbp), 0) as total_volume,
+  round(avg(volume_gbp), 0) as mean_volume,
+  round(median(volume_gbp), 0) as median_volume,
+  round(stddev(volume_gbp), 0) as std_dev
+from  dash_case_study.wise_case_study.take_home_task_dataset t
+left join dash_case_study.wise_case_study.holidays_2023 h 
+    on t.posting_date = h.holiday_date
+where DAYOFWEEK(posting_date) in (0, 6) -- only weekends
+    or h.holiday_date is not null -- only bank holidays
+group by 1
+order by 1
+)
+
+Select
+  *,
+  round(mean_volume - 1.96 * (std_dev / SQRT(business_days)), 0) as ci_lower_95,
+  round(mean_volume + 1.96 * (std_dev / SQRT(business_days)), 0) as ci_upper_95
+from quater_stats
+order by 1
+;
