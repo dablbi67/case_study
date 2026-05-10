@@ -18,7 +18,7 @@ Exploratory analysis of daily GBP-ZAR transfer volumes, completed as part of a t
 
 ## Tasks & Scripts
 
-### Task 1 — Distribution Analysis (`Task%201`)
+### Task 1 — Distribution Analysis
 
 Identifies and proves the bimodal distribution of daily transfer volumes.
 
@@ -26,7 +26,7 @@ Identifies and proves the bimodal distribution of daily transfer volumes.
 
 ---
 
-### Task 2 — Quarter-on-Quarter Analysis (`Task%202`)
+### Task 2 — Quarter-on-Quarter Analysis
 
 Tests whether QoQ volume changes are statistically significant or driven by background fluctuations.
 
@@ -34,7 +34,7 @@ Tests whether QoQ volume changes are statistically significant or driven by back
 
 ---
 
-### Task 3 — October 2023 Volume Estimate (`Task%203`)
+### Task 3 — October 2023 Volume Estimate
 
 Estimates total October 2023 transfer volume with a confidence interval, given the incomplete data.
 
