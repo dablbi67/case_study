@@ -1,5 +1,5 @@
 
-# GBP Transfer Volume Analysis — UK↔SA
+# GBP Transfer Volume Analysis
 
 Exploratory analysis of daily GBP-ZAR transfer volumes, completed as part of a take-home case study. All analysis is written in **Snowflake SQL** with no Python dependencies.
 
