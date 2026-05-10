@@ -1,4 +1,4 @@
-[README.md](https://github.com/user-attachments/files/27561765/README.md)
+
 # GBP Transfer Volume Analysis — UK↔SA
 
 Exploratory analysis of daily GBP-ZAR transfer volumes, completed as part of a take-home case study. All analysis is written in **Snowflake SQL** with no Python dependencies.
