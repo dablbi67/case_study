@@ -141,7 +141,7 @@ insert into dash_case_study.wise_case_study.holidays_2023 values
 
 Select
     case when DAYOFWEEK(t.posting_date) IN (0, 6) or h.holiday_date is not null THEN 'Weekend/bank holiday'
-         when volume_gbp < 10000 THEN 'Anomaly' -- weekdays with atypical transfer volumes (arbitrary)
+         when volume_gbp < 10000 THEN 'Atypical business days' -- weekdays with atypical transfer volumes (arbitrary)
     else 'Business day'
     end as population,
     count(*) as n,
